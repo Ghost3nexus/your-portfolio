@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KOZUKI - Multi-Project Planner</title>
+    <meta name="description" content="AI Consulting & Brand Strategy - An Immersive Mobile Gallery">
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Noto+Sans+JP:wght@100;300;400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --vh: 1vh;
+            --color-ink: #0a0a0a;
+            --color-paper: #faf8f3;
+            --color-gold: #d4a574;
+            --color-mist: rgba(250, 248, 243, 0.05);
+            --safe-area-top: env(safe-area-inset-top);
+            --safe-area-bottom: env(safe-area-inset-bottom);
+        }
+
+        html {
+            overflow: hidden;
+            height: 100%;
+        }
+
+        body {
+            background: var(--color-ink);
+            color: var(--color-paper);
+            font-family: 'Noto Sans JP', -apple-system, sans-serif;
+            font-weight: 100;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            touch-action: pan-y;
+        }
+
+        /* メインコンテナ */
+        .gallery-container {
+            height: 100%;
+            height: calc(var(--vh, 1vh) * 100);
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .gallery-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 各セクション */
+        .gallery-section {
+            min-height: 100%;
+            min-height: calc(var(--vh, 1vh) * 100);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            padding-top: calc(2rem + var(--safe-area-top));
+            padding-bottom: calc(2rem + var(--safe-area-bottom));
+            scroll-snap-align: start;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        /* 背景パターン */
+        .section-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        .pattern-1 {
+            background: radial-gradient(circle at 20% 50%, var(--color-paper) 0%, transparent 50%);
+        }
+
+        .pattern-2 {
+            background: linear-gradient(135deg, var(--color-paper) 0%, transparent 70%);
+        }
+
+        .pattern-3 {
+            background: radial-gradient(ellipse at top, var(--color-paper) 0%, transparent 60%);
+        }
+
+        /* イントロセクション */
+        .intro-section {
+            background: var(--color-ink);
+        }
+
+        .title-container {
+            text-align: center;
+            transform: translateZ(0);
+        }
+
+        .main-title {
+            font-family: 'EB Garamond', serif;
+            font-size: clamp(2.5rem, 10vw, 4rem);
+            font-weight: 400;
+            letter-spacing: 0.2em;
+            margin-bottom: 0.5rem;
+            position: relative;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .title-char {
+            display: inline-block;
+            animation: titleFloat 3s ease-in-out infinite;
+            animation-delay: calc(var(--char-index) * 0.1s);
+        }
+
+        @keyframes titleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .role-text {
+            font-size: 0.875rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            opacity: 0.6;
+            margin-top: 1rem;
+        }
+
+        /* カード型展示 */
+        .exhibit-card {
+            background: var(--color-mist);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(250, 248, 243, 0.1);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            max-width: 340px;
+            width: 100%;
+            transform: translateZ(0);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .exhibit-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--color-gold) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            pointer-events: none;
+        }
+
+        .exhibit-card:active::before {
+            opacity: 0.1;
+        }
+
+        .card-number {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            font-family: 'EB Garamond', serif;
+            font-size: 3rem;
+            opacity: 0.1;
+            font-weight: 600;
+        }
+
+        .card-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .card-title::after {
+            content: '';
+            position: absolute;
+            bottom: -0.5rem;
+            left: 0;
+            width: 40px;
+            height: 1px;
+            background: var(--color-gold);
+        }
+
+        .card-content {
+            font-size: 0.9rem;
+            line-height: 1.8;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        .card-content p {
+            margin-bottom: 0.8rem;
+        }
+
+        .card-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* スワイプインジケーター */
+        .swipe-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0.4;
+            animation: swipePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes swipePulse {
+            0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.4; }
+            50% { transform: translateX(-50%) translateY(-10px); opacity: 0.8; }
+        }
+
+        .swipe-line {
+            width: 1px;
+            height: 30px;
+            background: linear-gradient(to bottom, transparent, var(--color-paper));
+            margin-bottom: 0.5rem;
+        }
+
+        .swipe-text {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* 連絡先セクション */
+        .contact-section {
+            background: var(--color-paper);
+            color: var(--color-ink);
+        }
+
+        .contact-card {
+            background: rgba(10, 10, 10, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(10, 10, 10, 0.1);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            max-width: 340px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .contact-title {
+            font-family: 'EB Garamond', serif;
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            color: var(--color-ink);
+        }
+
+        .contact-item {
+            display: block;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: rgba(10, 10, 10, 0.05);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--color-ink);
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .contact-item:active {
+            background: rgba(212, 165, 116, 0.2);
+            transform: scale(0.98);
+        }
+
+        /* 日本語アクセント */
+        .japanese-accent {
+            position: absolute;
+            font-family: 'EB Garamond', serif;
+            font-size: 5rem;
+            opacity: 0.02;
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .accent-vertical {
+            writing-mode: vertical-rl;
+            top: 10%;
+            right: 10%;
+        }
+
+        .accent-horizontal {
+            bottom: 10%;
+            left: 10%;
+            letter-spacing: 0.5em;
+        }
+
+        /* 波のアニメーション */
+        .wave-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            opacity: 0.6;
+        }
+
+        .wave {
+            position: absolute;
+            width: 200%;
+            height: 100%;
+            bottom: 0;
+            left: -50%;
+            background: linear-gradient(to top, transparent 30%, var(--color-gold) 50%, transparent 70%);
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='none'%3E%3Cpath d='M0,150 C200,100 400,200 600,150 C800,100 1000,200 1200,150 L1200,300 L0,300 Z' fill='white'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='none'%3E%3Cpath d='M0,150 C200,100 400,200 600,150 C800,100 1000,200 1200,150 L1200,300 L0,300 Z' fill='white'/%3E%3C/svg%3E");
+            -webkit-mask-size: 50% 100%;
+            mask-size: 50% 100%;
+            -webkit-mask-repeat: repeat-x;
+            mask-repeat: repeat-x;
+            transform: translateZ(0);
+        }
+
+        .wave-1 {
+            animation: waveFlow 20s linear infinite;
+            opacity: 0.3;
+            filter: blur(1px);
+        }
+
+        .wave-2 {
+            animation: waveFlow 15s linear infinite reverse;
+            opacity: 0.2;
+            bottom: 10%;
+            filter: blur(2px);
+        }
+
+        .wave-3 {
+            animation: waveFlow 25s linear infinite;
+            opacity: 0.15;
+            bottom: 20%;
+            filter: blur(3px);
+        }
+
+        @keyframes waveFlow {
+            0% {
+                -webkit-mask-position: 0 0;
+                mask-position: 0 0;
+            }
+            100% {
+                -webkit-mask-position: 100% 0;
+                mask-position: 100% 0;
+            }
+        }
+
+        /* 縦の波（日本の流水文様風） */
+        .vertical-wave {
+            position: absolute;
+            width: 100px;
+            height: 200%;
+            top: -50%;
+            background: linear-gradient(to right, transparent, rgba(212, 165, 116, 0.1), transparent);
+            transform: translateZ(0);
+        }
+
+        .vertical-wave-1 {
+            left: 10%;
+            animation: verticalFlow 30s ease-in-out infinite;
+        }
+
+        .vertical-wave-2 {
+            right: 10%;
+            animation: verticalFlow 35s ease-in-out infinite reverse;
+        }
+
+        @keyframes verticalFlow {
+            0%, 100% {
+                transform: translateY(0) scaleY(1);
+            }
+            50% {
+                transform: translateY(50%) scaleY(1.2);
+            }
+        }
+
+        /* スクロールプログレス */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(250, 248, 243, 0.1);
+            z-index: 100;
+        }
+
+        .scroll-progress-bar {
+            height: 100%;
+            background: var(--color-gold);
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        /* タブレット対応 */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .main-title {
+                font-size: 5rem;
+            }
+
+            .exhibit-card,
+            .contact-card {
+                max-width: 500px;
+                padding: 3rem 2.5rem;
+            }
+
+            .card-title {
+                font-size: 1.8rem;
+            }
+
+            .card-content {
+                font-size: 1rem;
+            }
+        }
+
+        /* デスクトップ対応 */
+        @media (min-width: 1025px) {
+            .gallery-container {
+                scroll-snap-type: none;
+            }
+
+            .gallery-section {
+                min-height: 100vh;
+            }
+
+            .main-title {
+                font-size: 6rem;
+            }
+
+            .exhibit-card,
+            .contact-card {
+                max-width: 600px;
+                padding: 4rem 3rem;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+
+            .exhibit-card:hover {
+                transform: translateY(-10px) scale(1.02);
+                box-shadow: 0 20px 60px rgba(212, 165, 116, 0.2);
+            }
+
+            .card-title {
+                font-size: 2rem;
+            }
+
+            .card-content {
+                font-size: 1.1rem;
+            }
+
+            .contact-item:hover {
+                background: rgba(212, 165, 116, 0.2);
+            }
+        }
+
+        /* アニメーション最適化 */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- スクロールプログレス -->
+    <div class="scroll-progress">
+        <div class="scroll-progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- メインギャラリー -->
+    <div class="gallery-container" id="galleryContainer">
+        <!-- イントロ -->
+        <section class="gallery-section intro-section">
+            <div class="wave-container">
+                <div class="wave wave-1"></div>
+                <div class="wave wave-2"></div>
+                <div class="wave wave-3"></div>
+                <div class="vertical-wave vertical-wave-1"></div>
+                <div class="vertical-wave vertical-wave-2"></div>
+            </div>
+            
+            <div class="title-container">
+                <h1 class="main-title">
+                    <span class="title-char" style="--char-index: 0">K</span><span class="title-char" style="--char-index: 1">O</span><span class="title-char" style="--char-index: 2">Z</span><span class="title-char" style="--char-index: 3">U</span><span class="title-char" style="--char-index: 4">K</span><span class="title-char" style="--char-index: 5">I</span>
+                </h1>
+                <p class="role-text">Multi-Project Planner</p>
+            </div>
+            
+            <div class="swipe-indicator">
+                <div class="swipe-line"></div>
+                <span class="swipe-text">Swipe</span>
+            </div>
+        </section>
+
+        <!-- Current Focus -->
+        <section class="gallery-section">
+            <div class="section-bg pattern-1"></div>
+            <span class="japanese-accent accent-vertical">現在</span>
+            
+            <div class="exhibit-card">
+                <span class="card-number">01</span>
+                <h2 class="card-title">Current Focus</h2>
+                <div class="card-content">
+                    <p><strong>AI Consulting & Brand Strategy</strong></p>
+                    <p>Fashion, E-commerce, and Business Innovation</p>
+                    <p>最先端のAI技術とブランド戦略の融合により、次世代のビジネスソリューションを創造</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Expertise -->
+        <section class="gallery-section">
+            <div class="section-bg pattern-2"></div>
+            <span class="japanese-accent accent-horizontal">専門</span>
+            
+            <div class="exhibit-card">
+                <span class="card-number">02</span>
+                <h2 class="card-title">Core Expertise</h2>
+                <div class="card-content">
+                    <p>• Generative AI導入支援</p>
+                    <p>• Chatbot Development</p>
+                    <p>• Fashion & DTC Brand Launch</p>
+                    <p>• Omni-channel Marketing</p>
+                    <p>• Quiet Luxury Positioning</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Career Journey -->
+        <section class="gallery-section">
+            <div class="section-bg pattern-3"></div>
+            <span class="japanese-accent accent-vertical">経歴</span>
+            
+            <div class="exhibit-card">
+                <span class="card-number">03</span>
+                <h2 class="card-title">Career Journey</h2>
+                <div class="card-content">
+                    <p><strong>10+ Years</strong> Fashion & Retail</p>
+                    <p>Operations Excellence から始まり、デジタルトランスフォーメーションを推進</p>
+                    <p><strong>2025</strong> AIソリューション事業立ち上げ</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Philosophy -->
+        <section class="gallery-section">
+            <div class="section-bg pattern-1"></div>
+            <span class="japanese-accent accent-horizontal">哲学</span>
+            
+            <div class="exhibit-card">
+                <span class="card-number">04</span>
+                <h2 class="card-title">Philosophy</h2>
+                <div class="card-content">
+                    <p>伝統と革新の出会う場所で</p>
+                    <p>デジタルと物理的な境界を超える体験を創造</p>
+                    <p>明日のラグジュアリーを今日形にする</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Certifications -->
+        <section class="gallery-section">
+            <div class="section-bg pattern-2"></div>
+            <span class="japanese-accent accent-vertical">資格</span>
+            
+            <div class="exhibit-card">
+                <span class="card-number">05</span>
+                <h2 class="card-title">Certifications</h2>
+                <div class="card-content">
+                    <p><strong>生成AIパスポート</strong></p>
+                    <p>継続的な学習と成長</p>
+                    <p>未来に向けたスキルセット構築</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact -->
+        <section class="gallery-section contact-section">
+            <div class="wave-container">
+                <div class="wave wave-1"></div>
+                <div class="wave wave-2"></div>
+                <div class="wave wave-3"></div>
+            </div>
+            
+            <div class="contact-card">
+                <h2 class="contact-title">Connect</h2>
+                <a href="mailto:sackouzki@gmail.com" class="contact-item">
+                    ✉ sackouzki@gmail.com
+                </a>
+                <a href="tel:090-0000-0000" class="contact-item">
+                    ☎ 090-0000-0000
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // ビューポートの高さを正確に取得
+        function setVH() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        setVH();
+        window.addEventListener('resize', setVH);
+        window.addEventListener('orientationchange', setVH);
+
+        // スクロールプログレス
+        const galleryContainer = document.getElementById('galleryContainer');
+        const progressBar = document.getElementById('progressBar');
+        
+        galleryContainer.addEventListener('scroll', () => {
+            const scrollHeight = galleryContainer.scrollHeight - galleryContainer.clientHeight;
+            const scrollProgress = (galleryContainer.scrollTop / scrollHeight) * 100;
+            progressBar.style.width = scrollProgress + '%';
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.5,
+            rootMargin: '0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // カードのアニメーション
+        const cards = document.querySelectorAll('.exhibit-card, .contact-card');
+        cards.forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+            observer.observe(card);
+        });
+
+        // タッチフィードバック
+        document.querySelectorAll('.exhibit-card, .contact-item').forEach(el => {
+            el.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            el.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+        // スムーズスクロール（オプション）
+        let isScrolling = false;
+        galleryContainer.addEventListener('scroll', () => {
+            if (!isScrolling) {
+                isScrolling = true;
+                requestAnimationFrame(() => {
+                    isScrolling = false;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
